@@ -10,8 +10,11 @@ FICHIER_ETAT = Path("etat.json")
 
 NTFY_TOPIC = os.environ["NTFY_TOPIC"]
 
-# Tes niveaux d'alerte, en EUR par gramme
-NIVEAUX = [114, 115, 116, 120, 118]
+# Alerte quand le cours passe SOUS un de ces niveaux (EUR par gramme)
+NIVEAUX_BAISSE = [114, 115, 116, 118]
+
+# Alerte quand le cours passe AU-DESSUS d'un de ces niveaux (vide = aucune alerte à la hausse)
+NIVEAUX_HAUSSE = [119,120,121]
 
 # Délai minimum entre deux alertes sur un même niveau (évite le spam si le cours oscille)
 DELAI_MIN_SECONDES = 60 * 60
@@ -51,16 +54,21 @@ def main():
     maintenant = time.time()
 
     if dernier is not None:
-        for niveau in sorted(NIVEAUX):
-            derniere_alerte = etat["alertes"].get(str(niveau), 0)
-            if maintenant - derniere_alerte < DELAI_MIN_SECONDES:
+        for niveau in sorted(NIVEAUX_BAISSE, reverse=True):
+            cle = f"baisse_{niveau}"
+            if maintenant - etat["alertes"].get(cle, 0) < DELAI_MIN_SECONDES:
                 continue
             if dernier > niveau >= prix:
                 lignes.append(f"⬇️ Passé sous {niveau} EUR/g")
-                etat["alertes"][str(niveau)] = maintenant
-            elif dernier < niveau <= prix:
+                etat["alertes"][cle] = maintenant
+
+        for niveau in sorted(NIVEAUX_HAUSSE):
+            cle = f"hausse_{niveau}"
+            if maintenant - etat["alertes"].get(cle, 0) < DELAI_MIN_SECONDES:
+                continue
+            if dernier < niveau <= prix:
                 lignes.append(f"⬆️ Passé au-dessus de {niveau} EUR/g")
-                etat["alertes"][str(niveau)] = maintenant
+                etat["alertes"][cle] = maintenant
 
     if lignes:
         notifier("Or : niveau franchi", "\n".join(lignes) + f"\nCours actuel : {prix:.2f} EUR/g")
