@@ -11,7 +11,7 @@ FICHIER_ETAT = Path("etat.json")
 NTFY_TOPIC = os.environ["NTFY_TOPIC"]
 
 # Tes niveaux d'alerte, en EUR par gramme
-NIVEAUX = [114, 115, 116, 120]
+NIVEAUX = [114, 115, 116, 120, 118]
 
 # Délai minimum entre deux alertes sur un même niveau (évite le spam si le cours oscille)
 DELAI_MIN_SECONDES = 60 * 60
