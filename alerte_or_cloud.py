@@ -10,7 +10,7 @@ FICHIER_ETAT = Path("etat.json")
 NTFY_TOPIC = os.environ["NTFY_TOPIC"]
 
 # Alerte quand le cours est SOUS un de ces niveaux (EUR par gramme)
-NIVEAUX_BAISSE = [114, 115, 116,117, 118]
+NIVEAUX_BAISSE = [114, 115, 116, 118]
 
 # Alerte quand le cours est AU-DESSUS d'un de ces niveaux (vide = aucune)
 NIVEAUX_HAUSSE = [119, 120, 121]
