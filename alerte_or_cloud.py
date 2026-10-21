@@ -1,6 +1,5 @@
 import json
 import os
-import time
 from pathlib import Path
 
 import requests
@@ -10,14 +9,18 @@ FICHIER_ETAT = Path("etat.json")
 
 NTFY_TOPIC = os.environ["NTFY_TOPIC"]
 
-# Alerte quand le cours passe SOUS un de ces niveaux (EUR par gramme)
+# Alerte quand le cours est SOUS un de ces niveaux (EUR par gramme)
 NIVEAUX_BAISSE = [114, 115, 116,117, 118]
 
-# Alerte quand le cours passe AU-DESSUS d'un de ces niveaux (vide = aucune alerte à la hausse)
-NIVEAUX_HAUSSE = [119,120,121]
+# Alerte quand le cours est AU-DESSUS d'un de ces niveaux (vide = aucune)
+NIVEAUX_HAUSSE = [119, 120, 121]
 
-# Délai minimum entre deux alertes sur un même niveau (évite le spam si le cours oscille)
-DELAI_MIN_SECONDES = 60 * 60
+# Écart à ajouter au prix du script pour l'aligner sur ton site (en EUR/g).
+# Exemple : si ton site affiche 0,20 de moins que le script, mets -0.20
+AJUSTEMENT_EUR_G = 0.0
+
+# Un niveau déjà déclenché se réarme quand le cours s'en éloigne de cette marge (EUR/g)
+MARGE_REARMEMENT = 0.30
 
 
 def prix_or_gramme_eur():
@@ -42,38 +45,38 @@ def notifier(titre, message):
 
 
 def main():
-    etat = {"dernier_prix": None, "alertes": {}}
+    etat = {"desarme": {}}
     if FICHIER_ETAT.exists():
-        etat.update(json.loads(FICHIER_ETAT.read_text()))
+        try:
+            etat.update(json.loads(FICHIER_ETAT.read_text()))
+        except ValueError:
+            pass
+    desarme = etat.setdefault("desarme", {})
 
-    prix = prix_or_gramme_eur()
-    dernier = etat["dernier_prix"]
-    print(f"Or : {prix:.2f} EUR/g (précédent : {dernier})")
+    prix = prix_or_gramme_eur() + AJUSTEMENT_EUR_G
+    print(f"Or : {prix:.2f} EUR/g")
 
     lignes = []
-    maintenant = time.time()
 
-    if dernier is not None:
-        for niveau in sorted(NIVEAUX_BAISSE, reverse=True):
-            cle = f"baisse_{niveau}"
-            if maintenant - etat["alertes"].get(cle, 0) < DELAI_MIN_SECONDES:
-                continue
-            if dernier > niveau >= prix:
-                lignes.append(f"⬇️ Passé sous {niveau} EUR/g")
-                etat["alertes"][cle] = maintenant
+    for niveau in sorted(NIVEAUX_BAISSE, reverse=True):
+        cle = f"baisse_{niveau}"
+        if prix <= niveau and not desarme.get(cle):
+            lignes.append(f"⬇️ Sous {niveau} EUR/g")
+            desarme[cle] = True
+        elif prix > niveau + MARGE_REARMEMENT:
+            desarme[cle] = False
 
-        for niveau in sorted(NIVEAUX_HAUSSE):
-            cle = f"hausse_{niveau}"
-            if maintenant - etat["alertes"].get(cle, 0) < DELAI_MIN_SECONDES:
-                continue
-            if dernier < niveau <= prix:
-                lignes.append(f"⬆️ Passé au-dessus de {niveau} EUR/g")
-                etat["alertes"][cle] = maintenant
+    for niveau in sorted(NIVEAUX_HAUSSE):
+        cle = f"hausse_{niveau}"
+        if prix >= niveau and not desarme.get(cle):
+            lignes.append(f"⬆️ Au-dessus de {niveau} EUR/g")
+            desarme[cle] = True
+        elif prix < niveau - MARGE_REARMEMENT:
+            desarme[cle] = False
 
     if lignes:
-        notifier("Or : niveau franchi", "\n".join(lignes) + f"\nCours actuel : {prix:.2f} EUR/g")
+        notifier("Or : niveau atteint", "\n".join(lignes) + f"\nCours actuel : {prix:.2f} EUR/g")
 
-    etat["dernier_prix"] = prix
     FICHIER_ETAT.write_text(json.dumps(etat))
 
 
