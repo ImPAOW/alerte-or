@@ -10,10 +10,10 @@ FICHIER_ETAT = Path("etat.json")
 NTFY_TOPIC = os.environ["NTFY_TOPIC"]
 
 # Alerte quand le cours est SOUS un de ces niveaux (EUR par gramme)
-NIVEAUX_BAISSE = [114, 115, 116, 118]
+NIVEAUX_BAISSE = [110, 111, 112, 113, 114, 115, 116, 117]
 
 # Alerte quand le cours est AU-DESSUS d'un de ces niveaux (vide = aucune)
-NIVEAUX_HAUSSE = [119, 120, 121]
+NIVEAUX_HAUSSE = [118, 119, 120, 121, 150, 170, 200]
 
 # Écart à ajouter au prix du script pour l'aligner sur ton site (en EUR/g).
 # Exemple : si ton site affiche 0,20 de moins que le script, mets -0.20
